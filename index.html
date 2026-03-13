@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CDO Tranche Simulation — Monte Carlo pricing, correlation risk, credit deterioration analysis, and capital structure visualization.">
+    <title>CDO Tranche Simulation</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ============ Header ============ -->
+<header class="site-header">
+    <h1>CDO Tranche Simulation</h1>
+    <span class="subtitle">Gaussian Copula Monte Carlo</span>
+</header>
+
+<!-- ============ Tab Navigation ============ -->
+<nav class="tab-nav" id="tab-nav">
+    <button class="active" data-tab="loss-dist">Loss Distribution</button>
+    <button data-tab="corr-risk">Correlation Risk</button>
+    <button data-tab="tranche-pricer">Tranche Pricer</button>
+    <button data-tab="credit-det">Credit Deterioration</button>
+    <button data-tab="cap-struct">Capital Structure</button>
+</nav>
+
+<!-- ============================================================
+     Module 1 — Portfolio Loss Distribution
+     ============================================================ -->
+<section class="tab-panel active" id="loss-dist">
+    <h2 class="panel-title">Portfolio Loss Distribution</h2>
+    <p class="panel-desc">Simulate the portfolio default loss distribution via Gaussian copula Monte Carlo.</p>
+
+    <div class="param-grid">
+        <div class="param-group">
+            <label for="ld-N">Number of Names</label>
+            <input type="number" id="ld-N" value="125" min="1">
+        </div>
+        <div class="param-group">
+            <label for="ld-cdsSpread">CDS Spread (bps)</label>
+            <input type="number" id="ld-cdsSpread" value="100" step="1">
+        </div>
+        <div class="param-group">
+            <label for="ld-recovery">Recovery Rate</label>
+            <input type="number" id="ld-recovery" value="0.40" step="0.01" min="0" max="1">
+        </div>
+        <div class="param-group">
+            <label for="ld-T">Maturity (years)</label>
+            <input type="number" id="ld-T" value="5" min="1">
+        </div>
+        <div class="param-group">
+            <label for="ld-r">Risk-Free Rate</label>
+            <input type="number" id="ld-r" value="0.02" step="0.005">
+        </div>
+        <div class="param-group">
+            <label for="ld-rho">Correlation (ρ)</label>
+            <input type="number" id="ld-rho" value="0.20" step="0.01" min="0" max="1">
+        </div>
+        <div class="param-group">
+            <label for="ld-sims">Simulations</label>
+            <input type="number" id="ld-sims" value="50000" step="10000" min="1000">
+        </div>
+    </div>
+    <button class="btn" id="ld-run" onclick="LossDistribution.run()">Run Simulation</button>
+
+    <div class="chart-container"><canvas id="ld-chart"></canvas></div>
+    <div class="stats-container" id="ld-stats"></div>
+</section>
+
+<!-- ============================================================
+     Module 2 — Correlation Risk
+     ============================================================ -->
+<section class="tab-panel" id="corr-risk">
+    <h2 class="panel-title">Correlation Risk</h2>
+    <p class="panel-desc">Sweep pairwise correlation and observe tranche spread sensitivity.</p>
+
+    <div class="param-grid">
+        <div class="param-group">
+            <label for="cr-N">Number of Names</label>
+            <input type="number" id="cr-N" value="125" min="1">
+        </div>
+        <div class="param-group">
+            <label for="cr-cdsSpread">CDS Spread (bps)</label>
+            <input type="number" id="cr-cdsSpread" value="100" step="1">
+        </div>
+        <div class="param-group">
+            <label for="cr-recovery">Recovery Rate</label>
+            <input type="number" id="cr-recovery" value="0.40" step="0.01">
+        </div>
+        <div class="param-group">
+            <label for="cr-T">Maturity (years)</label>
+            <input type="number" id="cr-T" value="5" min="1">
+        </div>
+        <div class="param-group">
+            <label for="cr-r">Risk-Free Rate</label>
+            <input type="number" id="cr-r" value="0.02" step="0.005">
+        </div>
+        <div class="param-group">
+            <label for="cr-sims">Simulations</label>
+            <input type="number" id="cr-sims" value="30000" step="5000" min="1000">
+        </div>
+        <div class="param-group">
+            <label for="cr-rhoMin">ρ Min</label>
+            <input type="number" id="cr-rhoMin" value="0.02" step="0.01" min="0.01" max="0.99">
+        </div>
+        <div class="param-group">
+            <label for="cr-rhoMax">ρ Max</label>
+            <input type="number" id="cr-rhoMax" value="0.50" step="0.01" min="0.01" max="0.99">
+        </div>
+        <div class="param-group">
+            <label for="cr-rhoSteps">Steps</label>
+            <input type="number" id="cr-rhoSteps" value="10" min="3" max="30">
+        </div>
+    </div>
+    <button class="btn" id="cr-run" onclick="CorrelationRisk.run()">Run Sweep</button>
+
+    <div class="chart-container"><canvas id="cr-chart"></canvas></div>
+    <div class="stats-container" id="cr-stats"></div>
+</section>
+
+<!-- ============================================================
+     Module 3 — Tranche Pricer
+     ============================================================ -->
+<section class="tab-panel" id="tranche-pricer">
+    <h2 class="panel-title">Tranche Pricer</h2>
+    <p class="panel-desc">Price an arbitrary CDO tranche defined by attachment and detachment points.</p>
+
+    <div class="param-grid">
+        <div class="param-group">
+            <label for="tp-N">Number of Names</label>
+            <input type="number" id="tp-N" value="125" min="1">
+        </div>
+        <div class="param-group">
+            <label for="tp-cdsSpread">CDS Spread (bps)</label>
+            <input type="number" id="tp-cdsSpread" value="100" step="1">
+        </div>
+        <div class="param-group">
+            <label for="tp-recovery">Recovery Rate</label>
+            <input type="number" id="tp-recovery" value="0.40" step="0.01">
+        </div>
+        <div class="param-group">
+            <label for="tp-T">Maturity (years)</label>
+            <input type="number" id="tp-T" value="5" min="1">
+        </div>
+        <div class="param-group">
+            <label for="tp-r">Risk-Free Rate</label>
+            <input type="number" id="tp-r" value="0.02" step="0.005">
+        </div>
+        <div class="param-group">
+            <label for="tp-rho">Correlation (ρ)</label>
+            <input type="number" id="tp-rho" value="0.20" step="0.01">
+        </div>
+        <div class="param-group">
+            <label for="tp-A">Attachment Point (%)</label>
+            <input type="number" id="tp-A" value="3" step="0.5" min="0">
+        </div>
+        <div class="param-group">
+            <label for="tp-D">Detachment Point (%)</label>
+            <input type="number" id="tp-D" value="7" step="0.5" min="0">
+        </div>
+        <div class="param-group">
+            <label for="tp-freq">Pay Frequency (/yr)</label>
+            <input type="number" id="tp-freq" value="4" min="1" max="12">
+        </div>
+        <div class="param-group">
+            <label for="tp-sims">Simulations</label>
+            <input type="number" id="tp-sims" value="50000" step="10000" min="1000">
+        </div>
+    </div>
+    <button class="btn" id="tp-run" onclick="TranchePricer.run()">Price Tranche</button>
+
+    <div class="stats-container" id="tp-stats"></div>
+</section>
+
+<!-- ============================================================
+     Module 4 — Credit Deterioration
+     ============================================================ -->
+<section class="tab-panel" id="credit-det">
+    <h2 class="panel-title">Credit Deterioration Scenarios</h2>
+    <p class="panel-desc">Stress-test tranche spreads under CDS spread widening scenarios.</p>
+
+    <div class="param-grid">
+        <div class="param-group">
+            <label for="cd-N">Number of Names</label>
+            <input type="number" id="cd-N" value="125" min="1">
+        </div>
+        <div class="param-group">
+            <label for="cd-baseSpread">Base CDS Spread (bps)</label>
+            <input type="number" id="cd-baseSpread" value="100" step="10">
+        </div>
+        <div class="param-group">
+            <label for="cd-recovery">Recovery Rate</label>
+            <input type="number" id="cd-recovery" value="0.40" step="0.01">
+        </div>
+        <div class="param-group">
+            <label for="cd-T">Maturity (years)</label>
+            <input type="number" id="cd-T" value="5" min="1">
+        </div>
+        <div class="param-group">
+            <label for="cd-r">Risk-Free Rate</label>
+            <input type="number" id="cd-r" value="0.02" step="0.005">
+        </div>
+        <div class="param-group">
+            <label for="cd-rho">Correlation (ρ)</label>
+            <input type="number" id="cd-rho" value="0.20" step="0.01">
+        </div>
+        <div class="param-group">
+            <label for="cd-sims">Simulations</label>
+            <input type="number" id="cd-sims" value="30000" step="5000" min="1000">
+        </div>
+        <div class="param-group">
+            <label for="cd-shocks">Spread Shocks (bps, comma-separated)</label>
+            <input type="text" id="cd-shocks" value="50, 100, 200, 400">
+        </div>
+    </div>
+    <button class="btn" id="cd-run" onclick="CreditDeterioration.run()">Run Scenarios</button>
+
+    <div class="chart-container"><canvas id="cd-chart"></canvas></div>
+    <div class="stats-container" id="cd-stats"></div>
+</section>
+
+<!-- ============================================================
+     Module 5 — Capital Structure
+     ============================================================ -->
+<section class="tab-panel" id="cap-struct">
+    <h2 class="panel-title">Capital Structure</h2>
+    <p class="panel-desc">Visualize the CDO tranche waterfall and compare spreads across the capital structure.</p>
+
+    <div class="param-grid">
+        <div class="param-group">
+            <label for="cs-N">Number of Names</label>
+            <input type="number" id="cs-N" value="125" min="1">
+        </div>
+        <div class="param-group">
+            <label for="cs-cdsSpread">CDS Spread (bps)</label>
+            <input type="number" id="cs-cdsSpread" value="100" step="1">
+        </div>
+        <div class="param-group">
+            <label for="cs-recovery">Recovery Rate</label>
+            <input type="number" id="cs-recovery" value="0.40" step="0.01">
+        </div>
+        <div class="param-group">
+            <label for="cs-T">Maturity (years)</label>
+            <input type="number" id="cs-T" value="5" min="1">
+        </div>
+        <div class="param-group">
+            <label for="cs-r">Risk-Free Rate</label>
+            <input type="number" id="cs-r" value="0.02" step="0.005">
+        </div>
+        <div class="param-group">
+            <label for="cs-rho">Correlation (ρ)</label>
+            <input type="number" id="cs-rho" value="0.20" step="0.01">
+        </div>
+        <div class="param-group">
+            <label for="cs-sims">Simulations</label>
+            <input type="number" id="cs-sims" value="50000" step="10000" min="1000">
+        </div>
+        <div class="param-group wide">
+            <label for="cs-tranches">Tranches (A%, D%, Label — one per line)</label>
+            <textarea id="cs-tranches">0, 3, Equity
+3, 7, Mezzanine
+7, 15, Senior
+15, 30, Super-Senior
+30, 100, Remainder</textarea>
+        </div>
+    </div>
+    <button class="btn" id="cs-run" onclick="CapitalStructure.run()">Build Structure</button>
+
+    <div class="chart-container"><canvas id="cs-chart"></canvas></div>
+    <div class="stats-container" id="cs-stats"></div>
+</section>
+
+<!-- ============ Footer ============ -->
+<footer class="site-footer">
+    CDO Tranche Simulation — Gaussian Copula Monte Carlo Engine
+</footer>
+
+<!-- ============ Scripts ============ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/lossDistribution.js"></script>
+<script src="js/correlationRisk.js"></script>
+<script src="js/tranchePricer.js"></script>
+<script src="js/creditDeterioration.js"></script>
+<script src="js/capitalStructure.js"></script>
+<script>
+    // Tab switching
+    document.getElementById("tab-nav").addEventListener("click", function(e) {
+        if (e.target.tagName !== "BUTTON") return;
+        document.querySelectorAll(".tab-nav button").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+        e.target.classList.add("active");
+        document.getElementById(e.target.dataset.tab).classList.add("active");
+    });
+</script>
+
+</body>
+</html>
